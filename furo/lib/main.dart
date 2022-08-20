@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:duration_picker/duration_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:sleek_circular_slider/sleek_circular_slider.dart';
 
@@ -19,9 +20,13 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSwatch().copyWith(
-          secondary: const Color.fromRGBO(0, 79, 67, 1),
-          primary: const Color.fromRGBO(245, 230, 214, 1),
-          secondaryContainer: const Color.fromRGBO(236, 133, 116, 1),
+          secondaryContainer: const Color.fromRGBO(0, 79, 67, 1),
+          primaryContainer: const Color.fromRGBO(245, 230, 214, 1),
+          primary: Colors.black,
+          secondary: const Color.fromRGBO(236, 133, 116, 1),
+        ),
+        buttonBarTheme: const ButtonBarThemeData(
+          buttonTextTheme: ButtonTextTheme.accent,
         ),
       ),
       home: const MyHomePage(),
@@ -39,6 +44,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   late AnimationController _controller;
   bool isPlaying = false;
+  bool isMuted = false;
   AudioPlayer? audioPlayer;
   AudioCache player = AudioCache(prefix: 'assets/');
   double _progress = 0;
@@ -59,7 +65,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   }
 
   Widget innerWidget(double val) {
-    return Image.asset('assets/images/japan_$imageNr.png');
+    return Padding(
+      padding: const EdgeInsets.all(0),
+      child: Image.asset('assets/images/japan_$imageNr.png'),
+    );
   }
 
   Future<void> _handleOnPressed() async {
@@ -68,16 +77,30 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       audioPlayer!.pause();
       timer?.cancel();
     } else {
-      _controller.forward();
       if (audioPlayer != null) {
+        _controller.forward();
         audioPlayer!.resume();
       } else {
+        var resultingDuration = await showDurationPicker(
+          context: context,
+          initialTime: const Duration(minutes: 30),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            shape: BoxShape.rectangle,
+            borderRadius: BorderRadius.circular(20),
+          ),
+        );
+
+        if (resultingDuration == Duration.zero || resultingDuration == null) {
+          return;
+        }
+        _controller.forward();
         audioPlayer = await player.play('Peritune-Sakuya.mp3');
         timer = Timer.periodic(
           const Duration(seconds: 1),
           (_) => setState(() {
             if (_progress < 100) {
-              _progress = _progress + 1;
+              _progress = _progress + (1 / (resultingDuration.inSeconds / 100));
             }
           }),
         );
@@ -98,17 +121,30 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
     setState(() {
       isPlaying = false;
+      audioPlayer = null;
       _progress = 0;
+    });
+  }
+
+  Future<void> _handleMutePressed() async {
+    if (isMuted) {
+      audioPlayer!.setVolume(1);
+    } else {
+      audioPlayer!.setVolume(0);
+    }
+
+    setState(() {
+      isMuted = !isMuted;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.primary,
+      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.secondary,
+        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        foregroundColor: Theme.of(context).colorScheme.secondaryContainer,
         elevation: 0,
         title: const Text(
           "Furō",
@@ -128,9 +164,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   startAngle: -90,
                   angleRange: 360,
                   customColors: CustomSliderColors(
-                    trackColor: Theme.of(context).colorScheme.secondary,
-                    progressBarColor:
+                    trackColor:
                         Theme.of(context).colorScheme.secondaryContainer,
+                    progressBarColor: Theme.of(context).colorScheme.secondary,
                     dynamicGradient: false,
                   ),
                   infoProperties: InfoProperties(
@@ -156,52 +192,85 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (isPlaying)
+              if (audioPlayer != null)
                 SizedBox(
                   height: 60,
                   child: TextButton(
                     style: TextButton.styleFrom(
                         backgroundColor:
-                            Theme.of(context).colorScheme.secondary,
+                            Theme.of(context).colorScheme.secondaryContainer,
                         minimumSize: const Size(100, 50),
                         shape: const CircleBorder()),
                     child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [Icon(Icons.stop)]),
+                        children: [
+                          Icon(
+                            Icons.stop,
+                            color:
+                                Theme.of(context).colorScheme.primaryContainer,
+                          )
+                        ]),
                     onPressed: () => _handleStopPressed(),
                   ),
                 ),
-              SizedBox(
-                width: 250,
-                height: 60,
-                child: TextButton(
-                  style: TextButton.styleFrom(
-                    backgroundColor:
-                        Theme.of(context).colorScheme.secondaryContainer,
-                    minimumSize: const Size(100, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      AnimatedIcon(
-                        icon: AnimatedIcons.play_pause,
-                        progress: _controller,
-                        color: Theme.of(context).colorScheme.secondary,
-                        size: 50,
+              Flexible(
+                child: SizedBox(
+                  width: audioPlayer == null ? 250 : double.infinity,
+                  height: 60,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.secondary,
+                      minimumSize: const Size(100, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50),
                       ),
-                      SizedBox(width: 5),
-                      const Text(
-                        'PLAY',
-                        style: TextStyle(fontSize: 25),
-                      )
-                    ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        AnimatedIcon(
+                          icon: AnimatedIcons.play_pause,
+                          progress: _controller,
+                          color:
+                              Theme.of(context).colorScheme.secondaryContainer,
+                          size: 50,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          'PLAY',
+                          style: TextStyle(
+                              fontSize: 25,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primaryContainer),
+                        )
+                      ],
+                    ),
+                    onPressed: () => _handleOnPressed(),
                   ),
-                  onPressed: () => _handleOnPressed(),
                 ),
               ),
+              if (audioPlayer != null)
+                SizedBox(
+                  height: 60,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                        backgroundColor:
+                            Theme.of(context).colorScheme.secondaryContainer,
+                        minimumSize: const Size(100, 50),
+                        shape: const CircleBorder()),
+                    child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            isMuted ? Icons.volume_up : Icons.volume_off,
+                            color:
+                                Theme.of(context).colorScheme.primaryContainer,
+                          )
+                        ]),
+                    onPressed: () => _handleMutePressed(),
+                  ),
+                ),
             ],
           ),
         ],
