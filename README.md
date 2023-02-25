@@ -8,4 +8,5 @@ Furō's playlists are specifically designed to help users enter a flow state, wh
 
 Whether you're a student, professional, or creative, Furō is the perfect tool for boosting your focus and achieving your goals. And with its intuitive interface and easy-to-use features, you can start using Furō to enhance your productivity today.
 
+# Screenshots
    <img src="https://i.imgur.com/qAZzVVR.png" alt="alt text" height="500">   <img src="https://i.imgur.com/0I0SMSA.png" alt="alt text" height="500">  <img src="https://i.imgur.com/hh9df64.png" alt="alt text" height="500"> 
