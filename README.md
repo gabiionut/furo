@@ -1,4 +1,5 @@
-Introducing "Furō"
+# Introducing "Furō"
+
 Introducing "Furō," the ultimate app for anyone looking to boost their focus and concentration through the calming sounds of traditional Japanese music.
 
 With Furō, users can immerse themselves in the rich history and culture of Japan, while using the app's carefully curated playlists as background music for studying, working, or any other task that requires sustained focus.
